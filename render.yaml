@@ -5,18 +5,15 @@ services:
     name: minecraft-law-site
     runtime: node
     plan: free
-    buildCommand: ""            # 无依赖，无需构建
-    startCommand: node server/index.js
+    # 无第三方依赖；build 只做一次产物自检，失败会直接中止部署
+    buildCommand: "npm run build"
+    startCommand: "npm start"
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: HOST
         value: 0.0.0.0
-      # 大模型增强（可选，不填则使用内置离线引擎）
-      - key: LAW_LLM_API_KEY
-        sync: false
-      - key: LAW_LLM_BASE_URL
-        value: https://api.deepseek.com/v1
-      - key: LAW_LLM_MODEL
-        value: deepseek-chat
+      # 大模型增强（可选）：在 Render 后台的 Environment 里手动添加即可，
+      # 不添加则使用内置的离线条文检索引擎，功能完整。
+      #   LAW_LLM_API_KEY / LAW_LLM_BASE_URL / LAW_LLM_MODEL
