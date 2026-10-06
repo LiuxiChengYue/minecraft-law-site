@@ -77,16 +77,27 @@ check('圆角体系含胶囊值', /--r-pill:\s*980px/.test(root));
 check('圆角体系含大卡片值', /--r-lg:\s*20px/.test(root));
 
 console.log('\n[3] 毛玻璃材质');
-const glassTokens = css.match(/--blur(-strong)?:\s*saturate\(180%\)\s*blur\(/g) || [];
+const glassTokens = css.match(/--blur(-strong)?:\s*saturate\((180|200|220)%\)\s*blur\(/g) || [];
 check('定义了两级模糊强度', glassTokens.length >= 2, String(glassTokens.length));
-check('顶栏使用毛玻璃', /\.topbar\s*\{[^}]*backdrop-filter/s.test(css));
-check('顶栏同时带 -webkit- 前缀', /\.topbar\s*\{[^}]*-webkit-backdrop-filter/s.test(css));
+check('模糊值足够强（≥28px）', /--blur:\s*saturate\([^)]*\)\s*blur\((2[8-9]|[3-9]\d)px\)/.test(css),
+  (css.match(/--blur:\s*[^;]+/) || [''])[0]);
+// 顶栏的材质在 .topbar-inner 上（外层只是定位与渐隐遮罩）
+check('顶栏使用毛玻璃', /\.topbar-inner\s*\{[^}]*backdrop-filter/s.test(css));
+check('顶栏同时带 -webkit- 前缀', /\.topbar-inner\s*\{[^}]*-webkit-backdrop-filter/s.test(css));
 check('侧栏使用毛玻璃', /\.law-side\s*\{[^}]*backdrop-filter/s.test(css));
 check('检索遮罩使用模糊背景', /\.overlay\s*\{[^}]*backdrop-filter/s.test(css));
 check('AI 回答气泡使用毛玻璃', /\.msg-ai \.msg-text\s*\{[^}]*backdrop-filter/s.test(css));
 check('输入框使用毛玻璃', /\.composer\s*\{[^}]*backdrop-filter/s.test(css));
 check('设置面板使用毛玻璃', /\.panel\s*\{[^}]*backdrop-filter/s.test(css));
-check('提供了不支持时的回退方案', /@supports not[\s\S]{0,160}backdrop-filter[\s\S]{0,400}background:\s*var\(--bg-elev\)/.test(css));
+check('玻璃层足够通透（≤0.6，否则看不出材质）',
+  /--surface-glass:\s*rgba\([^)]*\.([0-5]\d?)\)/.test(css),
+  (css.match(/--surface-glass:\s*[^;]+/) || [''])[0]);
+check('玻璃有边缘高光（苹果质感关键）',
+  /--glass-edge:\s*inset 0 \.5px 0/.test(css));
+check('边缘高光已应用到玻璃件上', (css.match(/var\(--glass-edge\)/g) || []).length >= 10,
+  String((css.match(/var\(--glass-edge\)/g) || []).length) + ' 处');
+check('提供了不支持时的回退方案',
+  /@supports not[\s\S]{0,200}backdrop-filter[\s\S]{0,600}background:\s*var\(--bg-elev\)/.test(css));
 
 console.log('\n[4] 组件观感');
 check('导航是分段控件（胶囊底 + 内边距）', /\.nav\s*\{[^}]*border-radius:\s*var\(--r-pill\)/s.test(css));
@@ -101,10 +112,19 @@ check('气泡用小圆角贴角（对话感）',
   /\.msg-ai \.msg-text\s*\{[^}]*border-radius:\s*4px var\(--r-lg\)/s.test(css));
 check('条文卡片化（有圆角与阴影）',
   /\.article\s*\{[^}]*border-radius:\s*var\(--r-lg\)[^}]*box-shadow/s.test(css));
-check('章节列表是 iOS 分组列表', /\.chapter-grid\s*\{[^}]*background:\s*var\(--bg-elev\)[^}]*border-radius/s.test(css));
+check('章节列表是 iOS 分组列表', /\.chapter-grid\s*\{[^}]*background:\s*var\(--surface-glass\)[^}]*border-radius/s.test(css));
 check('分隔线用 .5px 发丝线', /\.5px solid var\(--line\)/.test(css));
 check('大标题用渐变文字', /\.hero h1\s*\{[^}]*background-clip:\s*text/s.test(css));
-check('背景有极淡的色彩底纹供玻璃折射', /body\s*\{[^}]*radial-gradient/s.test(css));
+check('背景有会流动的彩色光斑（玻璃的折射源）',
+  /body::before\s*\{[^}]*radial-gradient/s.test(css));
+check('光斑带动画（缓慢漂移）', /@keyframes drift/.test(css));
+check('深色模式也有光斑', /prefers-color-scheme: dark[\s\S]{0,200}body::before/.test(css));
+check('背景之上有可读性纱层', /body::after\s*\{[^}]*linear-gradient/s.test(css));
+check('移动端降低光斑强度', /max-width: 700px[\s\S]{0,400}body::before/.test(css));
+check('顶栏是悬浮胶囊（不是贴边通栏）',
+  /\.topbar-inner\s*\{[^}]*border-radius:\s*var\(--r-pill\)/s.test(css));
+check('弹层遮罩带模糊（iOS sheet 观感）',
+  /\.overlay\s*\{[^}]*backdrop-filter:\s*blur\(1[0-9]px\)/s.test(css));
 
 console.log('\n[5] 无障碍与降级');
 check('尊重 prefers-reduced-motion',
