@@ -7,6 +7,7 @@
 
   var LAW = window.__LAW__ || null;
   var R = window.DSH_LAW_RENDER;
+  var LLM = window.DSH_LLM;
   // 允许把 AI 问答指向另一个后端（静态托管 + 独立 API 时使用）
   var API_BASE = (window.__API_BASE__ || '').replace(/\/$/, '');
   var api = function (p) { return API_BASE + p; };
@@ -20,8 +21,9 @@
     query: '',
     hits: [],
     hitIndex: 0,
-    chat: [],          // { role: 'user'|'assistant', text, citations, engine, lead }
+    chat: [],          // { role: 'user'|'assistant', text, citations, engine, lead, streaming }
     busy: false,
+    llm: null,         // 大模型配置（自带密钥），null 表示使用内置引擎
   };
 
   /* ─────────────────────────── 本地检索 ─────────────────────────── */
@@ -234,17 +236,22 @@
         return '<div class="msg msg-user"><div class="avatar">你</div><div class="msg-body">' +
           '<div class="msg-who">提问</div><div class="msg-text">' + esc(m.text) + '</div></div></div>';
       }
-      return '<div class="msg msg-ai"><div class="avatar">法</div><div class="msg-body">' +
+      var streaming = m.streaming && !m.html;
+      return '<div class="msg msg-ai"' + (m.id ? ' id="msg-' + esc(m.id) + '"' : '') + '>' +
+        '<div class="avatar">法</div><div class="msg-body">' +
         '<div class="msg-who">AI 法务助手</div>' +
         (m.lead ? '<div class="msg-lead">' + esc(m.lead) + '</div>' : '') +
-        '<div class="msg-text">' + m.html + '</div>' +
-        (m.citations && m.citations.length ? citeHtml(m.citations) : '') +
+        '<div class="msg-text">' + (streaming
+          ? '<div class="typing"><i></i><i></i><i></i></div>'
+          : (m.html || '')) + '</div>' +
+        (m.streaming ? '' : (m.citations && m.citations.length ? citeHtml(m.citations) : '')) +
         '<div class="msg-foot">' +
         '<span class="engine-tag">' + esc(m.engine || '') + '</span>' +
         (m.elapsedMs ? '<span class="engine-tag">' + m.elapsedMs + ' ms</span>' : '') +
-        '<button class="copy-btn" type="button" data-copy="' + esc(m.plain || '') + '">复制回答</button>' +
+        (m.plain ? '<button class="copy-btn" type="button" data-copy="' +
+          esc(m.plain) + '">复制回答</button>' : '') +
         '</div></div></div>';
-    }).join('') + (state.busy
+    }).join('') + (state.busy && !state.chat.some(function (m) { return m.streaming; })
       ? '<div class="msg msg-ai" id="typing"><div class="avatar">法</div><div class="msg-body">' +
         '<div class="msg-who">AI 法务助手</div><div class="typing"><i></i><i></i><i></i></div></div></div>'
       : '');
@@ -291,6 +298,99 @@
     }).join('');
   }
 
+  /* ──────────────────── 回答生成：真 AI 优先，内置引擎兜底 ──────────────────── */
+
+  /** 用大模型回答；onDelta 存在时边生成边显示。 */
+  function answerWithLLM(question, history, msg) {
+    var offline = R.answerLocally(LAW, question);
+    var messages = LLM.buildMessages(question, offline.blocks || [], history);
+    var started = Date.now();
+    var buffer = '';
+    return LLM.chat(state.llm, messages, {
+      temperature: 0.3,
+      timeoutMs: 60000,
+      onDelta: function (piece) {
+        buffer += piece;
+        msg.html = renderStreamingText(buffer);
+        msg.plain = buffer;
+        msg.streaming = true;
+        patchStreamingMessage(msg);
+      },
+    }).then(function (full) {
+      var text = (full || buffer || '').trim();
+      if (!text) throw new Error('模型返回了空内容');
+      msg.html = renderAnswerText(text);
+      msg.plain = text;
+      msg.streaming = false;
+      msg.engine = modelLabel();
+      msg.elapsedMs = Date.now() - started;
+      msg.citations = offline.citations || [];
+      renderChat();
+      return true;
+    });
+  }
+
+  /** 把模型输出转成段落 HTML：支持短行、• 列点、**加粗**、条号高亮 */
+  function renderAnswerText(text) {
+    var lines = String(text).split(/\n+/);
+    var out = [];
+    var buf = [];
+    var flush = function () {
+      if (buf.length) {
+        out.push('<p>' + buf.join('') + '</p>');
+        buf = [];
+      }
+    };
+    lines.forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { flush(); return; }
+      var isItem = /^([•·\-*]|\d+[.、)]|（[一二三四五六七八九十\d]+）)/.test(line);
+      var body = inlineFormat(line.replace(/^([•·\-*])\s*/, ''));
+      if (isItem) {
+        flush();
+        out.push('<p class="ai-item">' + body + '</p>');
+      } else {
+        buf.push(body);
+      }
+    });
+    flush();
+    return out.join('');
+  }
+
+  /** 流式过程中先按纯文本渲染，避免半截 Markdown 造成闪烁 */
+  function renderStreamingText(text) {
+    return String(text).split(/\n{2,}/).map(function (p) {
+      return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>';
+    }).join('');
+  }
+
+  function inlineFormat(s) {
+    return esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/【([^】]{1,14})】/g, '<strong>【$1】</strong>')
+      .replace(/(第[一二三四五六七八九十百零〇]+条(?:之[一二三四五六七八九十]+)?)/g,
+        '<span class="cite-ref">$1</span>');
+  }
+
+  function modelLabel() {
+    if (!state.llm) return '内置条文引擎';
+    var p = LLM.providerById(state.llm.providerId);
+    return '真 AI · ' + (state.llm.model || p.model);
+  }
+
+  /** 流式过程中只更新当前消息节点，避免整屏重绘 */
+  function patchStreamingMessage(msg) {
+    var el = document.getElementById('msg-' + msg.id);
+    if (!el) { renderChat(); return; }
+    var body = el.querySelector('.msg-text');
+    if (body) {
+      body.innerHTML = msg.html;
+      var foot = el.querySelector('.engine-tag');
+      if (foot) foot.textContent = '正在生成…';
+    }
+    scrollThread();
+  }
+
   function send(question) {
     question = String(question || '').trim();
     if (!question || state.busy) return;
@@ -304,6 +404,30 @@
       return { role: m.role === 'user' ? 'user' : 'assistant', content: m.plain || m.text };
     });
 
+    // ① 已配置大模型 → 用真 AI 回答
+    if (state.llm) {
+      var msg = {
+        id: 'm' + Date.now() + Math.random().toString(36).slice(2, 6),
+        role: 'assistant', html: '', plain: '', citations: [], engine: '正在生成…',
+        lead: '', streaming: true,
+      };
+      state.chat.push(msg);
+      renderChat();
+      answerWithLLM(question, history, msg).catch(function (err) {
+        msg.streaming = false;
+        msg.engine = '真 AI 调用失败';
+        msg.lead = '真 AI 调用失败：' + err.message + '（已改用内置条文引擎回答）';
+        var local = R.answerLocally(LAW, question);
+        msg.html = htmlFromResult(local);
+        msg.plain = plainFromResult(local);
+        msg.citations = local.citations || [];
+        state.busy = false;
+        renderChat();
+      }).then(function () { state.busy = false; });
+      return;
+    }
+
+    // ② 未配置大模型 → 先试服务端（如果部署时带了后端），失败再用浏览器内置引擎
     fetch(api('/api/ask'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -350,6 +474,135 @@
         plain: '问答服务不可用', citations: [], engine: 'offline'
       });
       renderChat();
+    });
+  }
+
+  /* ─────────────────────────── 模型接入设置 ─────────────────────────── */
+
+  function renderLlmBanner() {
+    var banner = $('#llm-banner');
+    var note = $('#answer-note');
+    if (!banner) return;
+    if (state.llm) {
+      banner.hidden = false;
+      banner.className = 'llm-banner is-on';
+      banner.innerHTML = '<span class="llm-dot"></span>真 AI 已启用：<strong>' +
+        esc(state.llm.model) + '</strong>　' +
+        '<button class="link-more as-link" type="button" id="llm-banner-off">关闭</button>';
+      var off = $('#llm-banner-off');
+      if (off) off.addEventListener('click', function () {
+        LLM.clearConfig();
+        state.llm = null;
+        renderLlmBanner();
+        toast('已切回内置条文引擎');
+      });
+      var btn = $('#chat-settings');
+      if (btn) btn.textContent = '真 AI 设置';
+      if (note) {
+        note.innerHTML = '当前由<strong>大模型</strong>依据检索到的法典条文组织语言作答，' +
+          '引用条号仍来自法典原文。想换模型或关闭，点右上角<strong>「真 AI 设置」</strong>。';
+      }
+    } else {
+      banner.hidden = true;
+      var b2 = $('#chat-settings');
+      if (b2) b2.textContent = '接入真 AI';
+    }
+  }
+
+  function fillLlmForm(cfg) {
+    var provider = LLM.providerById((cfg && cfg.providerId) || 'deepseek');
+    var sel = $('#llm-provider');
+    sel.innerHTML = LLM.PROVIDERS.map(function (p) {
+      return '<option value="' + esc(p.id) + '">' + esc(p.label) + '</option>';
+    }).join('');
+    sel.value = provider.id;
+    $('#llm-base').value = (cfg && cfg.baseUrl) || provider.baseUrl;
+    $('#llm-model').value = (cfg && cfg.model) || provider.model;
+    $('#llm-key').value = (cfg && cfg.apiKey) || '';
+    $('#llm-models').innerHTML = (provider.models || []).map(function (m) {
+      return '<option value="' + esc(m) + '"></option>';
+    }).join('');
+    $('#llm-provider-note').innerHTML = esc(provider.note || '') +
+      (provider.keyUrl ? '　<a href="' + esc(provider.keyUrl) +
+        '" target="_blank" rel="noopener">去获取密钥 →</a>' : '');
+  }
+
+  function openLlmPanel() {
+    fillLlmForm(state.llm);
+    $('#llm-status').hidden = true;
+    $('#llm-overlay').hidden = false;
+    setTimeout(function () { $('#llm-key').focus(); }, 40);
+  }
+
+  function llmStatus(kind, text) {
+    var el = $('#llm-status');
+    el.hidden = false;
+    el.className = 'llm-status is-' + kind;
+    el.innerHTML = text;
+  }
+
+  function readLlmForm() {
+    return {
+      providerId: $('#llm-provider').value,
+      baseUrl: $('#llm-base').value.trim(),
+      model: $('#llm-model').value.trim(),
+      apiKey: $('#llm-key').value.trim(),
+    };
+  }
+
+  function bindLlmPanel() {
+    var sel = $('#llm-provider');
+    sel.addEventListener('change', function () {
+      var p = LLM.providerById(sel.value);
+      $('#llm-base').value = p.baseUrl;
+      $('#llm-model').value = p.model;
+      $('#llm-models').innerHTML = (p.models || []).map(function (m) {
+        return '<option value="' + esc(m) + '"></option>';
+      }).join('');
+      $('#llm-provider-note').innerHTML = esc(p.note || '') +
+        (p.keyUrl ? '　<a href="' + esc(p.keyUrl) +
+          '" target="_blank" rel="noopener">去获取密钥 →</a>' : '');
+    });
+
+    $('#chat-settings').addEventListener('click', openLlmPanel);
+    $('#llm-close').addEventListener('click', function () { $('#llm-overlay').hidden = true; });
+    $('#llm-overlay').addEventListener('click', function (e) {
+      if (e.target === $('#llm-overlay')) $('#llm-overlay').hidden = true;
+    });
+
+    $('#llm-test').addEventListener('click', function () {
+      var cfg = readLlmForm();
+      if (!cfg.apiKey) return llmStatus('err', '请先填写 API 密钥。');
+      var btn = $('#llm-test');
+      btn.disabled = true;
+      llmStatus('wait', '正在连接 ' + esc(cfg.model) + ' …');
+      LLM.testConfig(cfg).then(function (reply) {
+        btn.disabled = false;
+        llmStatus('ok', '连接成功，模型回复：' + esc(reply || '（空）'));
+      }).catch(function (err) {
+        btn.disabled = false;
+        llmStatus('err', esc(err.message));
+      });
+    });
+
+    $('#llm-save').addEventListener('click', function () {
+      var cfg = readLlmForm();
+      if (!cfg.apiKey) return llmStatus('err', '请先填写 API 密钥。');
+      if (!cfg.baseUrl) return llmStatus('err', '请填写接口地址。');
+      if (!cfg.model) return llmStatus('err', '请填写模型名。');
+      if (!LLM.saveConfig(cfg)) return llmStatus('err', '浏览器拒绝保存（可能是隐私模式），请允许本地存储。');
+      state.llm = cfg;
+      renderLlmBanner();
+      llmStatus('ok', '已启用。现在回到对话提问，回答将由 <strong>' + esc(cfg.model) +
+        '</strong> 生成。');
+      setTimeout(function () { $('#llm-overlay').hidden = true; }, 900);
+    });
+
+    $('#llm-off').addEventListener('click', function () {
+      LLM.clearConfig();
+      state.llm = null;
+      renderLlmBanner();
+      llmStatus('ok', '已切回内置条文引擎（无需密钥，离线可用）。');
     });
   }
 
@@ -578,6 +831,12 @@
     renderLaw();
     renderChat();
     bind();
+    // 读取本机保存的模型配置（自带密钥模式）
+    if (LLM) {
+      state.llm = LLM.loadConfig();
+      bindLlmPanel();
+      renderLlmBanner();
+    }
     $('#foot-title').textContent = LAW.title;
     route();
     loadAccessInfo();
