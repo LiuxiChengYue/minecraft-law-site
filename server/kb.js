@@ -110,8 +110,18 @@ const SYNONYMS = {
 };
 
 class KnowledgeBase {
-  constructor(lawPath) {
-    this.law = JSON.parse(fs.readFileSync(lawPath, 'utf8'));
+  /**
+   * @param {string|object} source 法典 JSON 的文件路径，或已解析好的数据对象
+   *        （云函数没有文件系统，直接传对象；本地服务传路径）
+   */
+  constructor(source) {
+    if (source && typeof source === 'object') {
+      this.law = source;
+      this.source = '(inline)';
+    } else {
+      this.law = JSON.parse(fs.readFileSync(source, 'utf8'));
+      this.source = String(source);
+    }
     this.docs = [];
     this.df = new Map();
     this.build();
