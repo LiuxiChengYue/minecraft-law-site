@@ -1,0 +1,29 @@
+# Fly.io 部署配置
+# 用法：fly launch --no-deploy  （或 fly deploy，会自动使用 deploy/Dockerfile）
+app = "minecraft-law-site"
+primary_region = "nrt"          # 东京，国内访问延迟较低；可改成 hkg / sin
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+  HOST = "0.0.0.0"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"    # 无访问时自动停机，省费用
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

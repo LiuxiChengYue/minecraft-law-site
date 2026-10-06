@@ -1,0 +1,20 @@
+services:
+  law-site:
+    build: .
+    image: minecraft-law-site:g2.8
+    container_name: law-site
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      HOST: "0.0.0.0"
+      # 如需大模型增强，取消注释并填写（不填则使用内置离线引擎）
+      # LAW_LLM_API_KEY: "sk-..."
+      # LAW_LLM_BASE_URL: "https://api.deepseek.com/v1"
+      # LAW_LLM_MODEL: "deepseek-chat"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

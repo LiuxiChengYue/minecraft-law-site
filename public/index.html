@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>《我的世界》世界基本法典 · 官方网站</title>
+<meta name="description" content="《我的世界》服务器 / 房间最高法律文件 G2.8 官方网站：全文条款、检索与内置 AI 法务问答。">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-view="home">
+<a class="skip" href="#main">跳到正文</a>
+
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#/" data-nav="home">
+      <span class="brand-mark" aria-hidden="true">法</span>
+      <span class="brand-text">
+        <strong>世界基本法典</strong>
+        <em id="brand-version">G2.8</em>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="主导航">
+      <a href="#/" data-nav="home">总览</a>
+      <a href="#/law" data-nav="law">法典全文</a>
+      <a href="#/ask" data-nav="ask" class="nav-ai">
+        <span class="dot" aria-hidden="true"></span>AI 法务问答
+      </a>
+    </nav>
+
+    <div class="topbar-tools">
+      <button id="search-open" class="icon-btn" type="button" aria-label="全库检索（快捷键 /）">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5 18 18"></path></svg>
+        <span class="icon-btn-label">检索</span>
+        <kbd>/</kbd>
+      </button>
+      <a class="btn btn-primary btn-sm" href="#/ask" data-nav="ask">开始提问</a>
+    </div>
+  </div>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+</header>
+
+<main id="main">
+
+  <!-- ─────────────────────────────── 总览 ─────────────────────────────── -->
+  <section class="view" id="view-home" hidden>
+    <div class="hero">
+      <p class="eyebrow"><span class="pulse" aria-hidden="true"></span>服务器 / 房间最高法律文件 · <span id="hero-version">G2.8</span></p>
+      <h1>把规则写清楚，<br>让每个人都能查得到。</h1>
+      <p class="lede">
+        《我的世界》世界基本法典是服务器的最高法律文件，覆盖刑法、物权、环境建设、经济金融、
+        司法程序、公民权利义务、政府组织、紧急状态与附则。本站提供全文条款、全文检索，
+        以及一个只会依据本法典作答的 AI 法务助手。
+      </p>
+
+      <form class="ask-mini" id="ask-mini">
+        <label class="sr-only" for="ask-mini-input">向法典提问</label>
+        <input id="ask-mini-input" type="search" autocomplete="off"
+               placeholder="试试问：偷东西怎么判？一区可以 PVP 吗？">
+        <button class="btn btn-primary" type="submit">问法典</button>
+      </form>
+      <div class="chips" id="hero-chips"></div>
+
+      <dl class="stats" id="hero-stats"></dl>
+    </div>
+
+    <div class="band">
+      <div class="band-head">
+        <h2>法典结构</h2>
+        <a class="link-more" href="#/law" data-nav="law">阅读全文 →</a>
+      </div>
+      <ol class="chapter-grid" id="chapter-grid"></ol>
+    </div>
+
+    <div class="band band-alt">
+      <div class="band-head">
+        <h2>怎么用这个站</h2>
+      </div>
+      <div class="how-grid">
+        <article class="how">
+          <span class="how-no">01</span>
+          <h3>AI 法务问答</h3>
+          <p>用日常说法提问，助手会在法典中定位条号，给出结论、适用区域与处罚标准，并附上原文引用。</p>
+          <a class="link-more" href="#/ask" data-nav="ask">去提问 →</a>
+        </article>
+        <article class="how">
+          <span class="how-no">02</span>
+          <h3>全文检索</h3>
+          <p>支持罪名、条号、关键词与俗称检索，例如「红石」「守尸」「永久封禁」，直接跳到相关条款。</p>
+          <button class="link-more as-link" type="button" id="how-search">打开检索 →</button>
+        </article>
+        <article class="how">
+          <span class="how-no">03</span>
+          <h3>按章通读</h3>
+          <p>九个章节按阅读顺序排列，标注<strong>全服通用</strong>、<strong>一区专属</strong>、<strong>三区专属</strong>，附录含量刑速查表与术语表。</p>
+          <a class="link-more" href="#/law" data-nav="law">进入法典 →</a>
+        </article>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="band-head"><h2>手机访问</h2></div>
+      <div class="access">
+        <div class="access-qr">
+          <div class="access-qr-box" id="access-qr"></div>
+          <p class="access-qr-note" id="access-qr-note">正在获取访问地址…</p>
+        </div>
+        <div class="access-info">
+          <p>本站是一个本地运行的网站，<strong>不需要安装任何 App</strong>：手机连上与本机相同的 WiFi，
+             用相机或微信扫左侧二维码即可打开，界面会自动适配手机屏幕。</p>
+          <ul class="access-list" id="access-list"><li>正在获取访问地址…</li></ul>
+          <p class="access-hint">
+            如果手机打不开，通常是 Windows 防火墙拦住了端口。以管理员身份运行一次下面这行命令即可放行：
+          </p>
+          <pre class="access-cmd" id="access-cmd">netsh advfirewall firewall add rule name="法典官网 8787" dir=in action=allow protocol=TCP localport=8787</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="band-head"><h2>常见问题</h2></div>
+      <div class="faq" id="faq-list"></div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────────── 法典全文 ────────────────────────────── -->
+  <section class="view" id="view-law" hidden>
+    <div class="law-layout">
+      <aside class="law-side" id="law-side">
+        <div class="side-head">
+          <h2>目录</h2>
+          <button class="icon-btn ghost" type="button" id="side-close" aria-label="收起目录">收起</button>
+        </div>
+        <nav class="toc" id="toc" aria-label="法典目录"></nav>
+      </aside>
+
+      <div class="law-main">
+        <div class="law-toolbar">
+          <button class="icon-btn ghost only-narrow" type="button" id="side-open" aria-label="展开目录">目录</button>
+          <div class="filter" role="group" aria-label="按适用范围筛选">
+            <button class="pill is-on" data-tag="" type="button">全部</button>
+            <button class="pill" data-tag="全服通用" type="button">全服通用</button>
+            <button class="pill" data-tag="一区专属" type="button">一区专属</button>
+            <button class="pill" data-tag="三区专属" type="button">三区专属</button>
+          </div>
+          <span class="toolbar-count" id="law-count"></span>
+        </div>
+        <article class="law-body" id="law-body"></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────────── AI 问答 ────────────────────────────── -->
+  <section class="view" id="view-ask" hidden>
+    <div class="ask-layout">
+      <div class="chat" id="chat">
+        <div class="chat-head">
+          <div>
+            <h2>AI 法务问答</h2>
+            <p class="chat-sub" id="engine-note">仅依据《我的世界》世界基本法典 G2.8 作答</p>
+          </div>
+          <button class="icon-btn ghost" type="button" id="chat-clear">清空对话</button>
+        </div>
+        <div class="thread" id="thread" aria-live="polite"></div>
+        <form class="composer" id="composer">
+          <label class="sr-only" for="chat-input">输入你的问题</label>
+          <textarea id="chat-input" rows="1" placeholder="描述你的问题，例如：偷东西会被怎么处罚？" autocomplete="off"></textarea>
+          <button class="btn btn-primary" type="submit" id="chat-send">发送</button>
+        </form>
+        <p class="composer-hint">Enter 发送 · Shift + Enter 换行 · 回答只引用法典条文，未覆盖的情形由房主最终裁定</p>
+        <div class="chips" id="ask-chips"></div>
+      </div>
+
+      <aside class="ask-side">
+        <h3>能问什么</h3>
+        <ul class="ask-tips">
+          <li>某项行为的<strong>定罪与处罚</strong>：如「放火烧山」「恶意守尸」</li>
+          <li>区域差异：<strong>一区 / 三区 / 全服</strong>规则分别是什么</li>
+          <li>程序问题：怎么<strong>起诉、举证、上诉</strong>，诉讼费多少</li>
+          <li>公职体系：<strong>职权层级、任命、公告义务</strong></li>
+          <li>经济规则：<strong>货币本位、汇率、税收、罚金缴纳</strong></li>
+        </ul>
+        <h3>回答如何产生</h3>
+        <p class="ask-note">
+          助手先在法典全文中检索最相关的条文，再从中挑选直接回答问题的句子，
+          并附上条号引用。所有结论都可在<strong>法典全文</strong>中核对原文。
+        </p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <div>
+      <strong id="foot-title">《我的世界》世界基本法典</strong>
+      <span class="foot-meta" id="foot-meta">G2.8 · 二〇二六年八月</span>
+    </div>
+    <p class="foot-note">
+      本法典最终解释权、最高决定权与修改权专属房主所有。本站内容依 G2.8 文本整理，
+      如与房主公示的正式文本存在差异，以房主公示文本为准。
+    </p>
+  </div>
+</footer>
+
+<!-- 检索面板 -->
+<div class="overlay" id="overlay" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="全库检索">
+    <div class="palette-input">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5 18 18"></path></svg>
+      <input id="search-input" type="search" placeholder="检索条号、罪名、关键词…" autocomplete="off">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-body" id="palette-body"></div>
+    <div class="palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+      <span><kbd>Enter</kbd> 打开</span>
+      <span id="palette-count"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>window.__LAW__ = /*__LAW_DATA__*/null;</script>
+<script src="assets/render.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/app.js" defer></script>
+</body>
+</html>

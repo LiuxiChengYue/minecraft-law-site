@@ -1,0 +1,22 @@
+# Render.com 一键部署（免费套餐可用）
+# 用法：把仓库推到 GitHub 后在 Render 里选 "Blueprint"，它会读取本文件。
+services:
+  - type: web
+    name: minecraft-law-site
+    runtime: node
+    plan: free
+    buildCommand: ""            # 无依赖，无需构建
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # 大模型增强（可选，不填则使用内置离线引擎）
+      - key: LAW_LLM_API_KEY
+        sync: false
+      - key: LAW_LLM_BASE_URL
+        value: https://api.deepseek.com/v1
+      - key: LAW_LLM_MODEL
+        value: deepseek-chat

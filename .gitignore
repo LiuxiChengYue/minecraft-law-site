@@ -1,0 +1,17 @@
+# 构建产物
+dist/
+
+# 中间产物（由原始 PDF 生成，体积大且可重建）
+build/
+
+# 依赖（本项目零依赖，保留以防万一）
+node_modules/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
