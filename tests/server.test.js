@@ -112,8 +112,14 @@ async function postJson(pathname, payload) {
   const re = /\$\('#([a-zA-Z0-9_-]+)'\)/g;
   let m;
   while ((m = re.exec(app)) !== null) wanted.add(m[1]);
-  const missing = [...wanted].filter((id) => ids.indexOf(id) === -1);
-  check('脚本静态引用的 ' + wanted.size + ' 个 id 全部存在', missing.length === 0, missing.join(','));
+  // 有些 id 是脚本自己用 innerHTML 生成的（例如横幅里的关闭按钮），
+  // 它们不该要求出现在 index.html 里 —— 只要在脚本里被创建过即可
+  const selfMade = new Set(
+    (app.match(/id="([a-zA-Z0-9_-]+)"/g) || []).map((s) => s.slice(4, -1)));
+  const missing = [...wanted].filter((id) => ids.indexOf(id) === -1 && !selfMade.has(id));
+  const deferred = [...wanted].filter((id) => ids.indexOf(id) === -1 && selfMade.has(id));
+  check('脚本引用的 ' + wanted.size + ' 个 id 全部可解析（其中 ' + deferred.length +
+    ' 个由脚本动态生成）', missing.length === 0, missing.join(','));
 
   // dynamically composed ids: $('#view-' + v)
   const dyn = (app.match(/\$\('#([a-zA-Z0-9_-]+-)' \+/g) || [])

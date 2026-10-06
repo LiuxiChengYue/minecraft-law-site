@@ -463,7 +463,82 @@ main { min-height: 70vh; }
 .ask-tips li { position: relative; padding: 0 0 12px 16px; font-size: 14px; color: var(--ink-2); line-height: 1.7; }
 .ask-tips li::before { content: ""; position: absolute; left: 0; top: .72em; width: 5px; height: 1.5px; background: var(--ink-3); }
 .ask-tips strong { color: var(--ink); font-weight: 600; }
-.ask-note { font-size: 13.5px; color: var(--ink-2); line-height: 1.8; }
+.ask-note { font-size: 13.5px; color: var(--ink-2); line-height: 1.8; margin-bottom: 12px; }
+
+/* ────────────────────── 真 AI 接入（设置面板与流式输出） ────────────────────── */
+.llm-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 16px; padding: 11px 15px; border-radius: var(--r-sm);
+  background: var(--ok-bg); color: var(--ok); font-size: 14px;
+  border: 1px solid color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.llm-banner strong { font-weight: 620; }
+.llm-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none;
+  animation: pulse 2.4s ease-out infinite;
+}
+.llm-banner .link-more { color: var(--ok); text-decoration: underline; text-underline-offset: 3px; }
+
+.panel {
+  width: min(660px, 100%); max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px;
+  box-shadow: var(--shadow-2); animation: pop .16s ease-out;
+}
+.panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+  padding: 22px 24px 18px; border-bottom: 1px solid var(--line);
+}
+.panel-head h2 { font-size: 19px; }
+.panel-head p { font-size: 13.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.7; }
+.panel-body { padding: 22px 24px 26px; overflow-y: auto; }
+
+.field { margin-bottom: 18px; }
+.field label {
+  display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 7px;
+  font-family: var(--mono); letter-spacing: .04em;
+}
+.field input, .field select {
+  width: 100%; height: 40px; padding: 0 12px; font: inherit; font-size: 14.5px;
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: var(--r-sm); outline: 0; transition: border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--ink-3); box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.field input[type="password"] { font-family: var(--mono); letter-spacing: .02em; }
+.field-note { font-size: 12.5px; color: var(--ink-3); margin-top: 7px; line-height: 1.7; }
+.field-note a { color: var(--accent); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.panel-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.llm-status {
+  margin-top: 16px; padding: 12px 14px; border-radius: var(--r-sm);
+  font-size: 13.5px; line-height: 1.7; border: 1px solid transparent;
+}
+.llm-status.is-ok   { background: var(--ok-bg); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 20%, transparent); }
+.llm-status.is-err  { background: #fdecec; color: #b02a2a; border-color: #f3cfcf; }
+.llm-status.is-wait { background: var(--warn-bg); color: var(--warn-ink); border-color: color-mix(in srgb, var(--warn-ink) 20%, transparent); }
+
+.llm-help { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px; }
+.llm-help summary { cursor: pointer; font-size: 14px; color: var(--ink-2); font-weight: 560; }
+.llm-help ol { margin: 14px 0 0; padding-left: 20px; font-size: 13.5px; color: var(--ink-2); line-height: 1.9; }
+.llm-help code {
+  font-family: var(--mono); font-size: 12.5px; background: var(--surface-2);
+  padding: 1px 5px; border-radius: 4px;
+}
+.llm-help a { color: var(--accent); }
+.llm-help p { margin-top: 12px; font-size: 13px; color: var(--ink-3); line-height: 1.8; }
+
+/* 模型输出里的条号引用 */
+.cite-ref {
+  color: var(--accent-ink); background: var(--accent-bg); border-radius: 4px;
+  padding: 1px 5px; font-size: .94em; font-weight: 560; white-space: nowrap;
+}
+.msg-text p.ai-item { padding-left: 18px; position: relative; }
+.msg-text p.ai-item::before {
+  content: ""; position: absolute; left: 3px; top: .78em; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--accent);
+}
 
 /* ────────────────────────────── 检索面板 ────────────────────────────── */
 .overlay {
@@ -566,6 +641,10 @@ main { min-height: 70vh; }
   .palette-foot span:first-child { display: none; }
   .access-qr { flex-direction: column; align-items: flex-start; }
   .access-cmd { font-size: 11.5px; }
+  .field-row { grid-template-columns: 1fr; gap: 0; }
+  .panel-head { padding: 18px 18px 14px; }
+  .panel-body { padding: 18px 18px 22px; }
+  .panel-actions .btn { flex: 1 1 auto; }
   .thread { padding: 22px 0; gap: 24px; }
   .msg { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
   .avatar { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }

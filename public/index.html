@@ -161,8 +161,10 @@
             <h2>AI 法务问答</h2>
             <p class="chat-sub" id="engine-note">仅依据《我的世界》世界基本法典 G2.8 作答</p>
           </div>
+          <button class="icon-btn ghost" type="button" id="chat-settings">接入真 AI</button>
           <button class="icon-btn ghost" type="button" id="chat-clear">清空对话</button>
         </div>
+        <div class="llm-banner" id="llm-banner" hidden></div>
         <div class="thread" id="thread" aria-live="polite"></div>
         <form class="composer" id="composer">
           <label class="sr-only" for="chat-input">输入你的问题</label>
@@ -183,9 +185,14 @@
           <li>经济规则：<strong>货币本位、汇率、税收、罚金缴纳</strong></li>
         </ul>
         <h3>回答如何产生</h3>
+        <p class="ask-note" id="answer-note">
+          默认使用<strong>内置条文引擎</strong>：在法典全文中检索最相关的条文，摘取直接回答问题的原文，
+          并附上条号引用——结论都能在<strong>法典全文</strong>里核对，但语言是法条原文，比较生硬。
+        </p>
         <p class="ask-note">
-          助手先在法典全文中检索最相关的条文，再从中挑选直接回答问题的句子，
-          并附上条号引用。所有结论都可在<strong>法典全文</strong>中核对原文。
+          想要<strong>真正会说话的 AI</strong>？点右上角<strong>「接入真 AI」</strong>，
+          填入你自己的模型密钥（DeepSeek / Kimi / 智谱 等），
+          之后回答就由大模型组织语言，依据仍然只来自法典条文。密钥只保存在你自己的浏览器里。
         </p>
       </aside>
     </div>
@@ -222,11 +229,71 @@
   </div>
 </div>
 
+<!-- 模型接入设置 -->
+<div class="overlay" id="llm-overlay" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-label="接入真 AI">
+    <div class="panel-head">
+      <div>
+        <h2>接入真 AI</h2>
+        <p>填入你自己的模型密钥，回答就由大模型组织语言；依据仍然只来自法典条文。</p>
+      </div>
+      <button class="icon-btn ghost" type="button" id="llm-close" aria-label="关闭">关闭</button>
+    </div>
+
+    <div class="panel-body">
+      <div class="field">
+        <label for="llm-provider">选择服务商</label>
+        <select id="llm-provider"></select>
+        <p class="field-note" id="llm-provider-note"></p>
+      </div>
+
+      <div class="field">
+        <label for="llm-key">API 密钥</label>
+        <input id="llm-key" type="password" placeholder="粘贴你的密钥，只保存在本机浏览器" autocomplete="off" spellcheck="false">
+        <p class="field-note" id="llm-key-note"></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="llm-model">模型</label>
+          <input id="llm-model" list="llm-models" placeholder="模型名" autocomplete="off" spellcheck="false">
+          <datalist id="llm-models"></datalist>
+        </div>
+        <div class="field">
+          <label for="llm-base">接口地址</label>
+          <input id="llm-base" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button class="btn btn-primary" type="button" id="llm-save">保存并启用</button>
+        <button class="btn btn-ghost" type="button" id="llm-test">测试连接</button>
+        <button class="btn btn-ghost" type="button" id="llm-off">关闭真 AI</button>
+      </div>
+
+      <div class="llm-status" id="llm-status" hidden></div>
+
+      <details class="llm-help">
+        <summary>怎么拿到密钥？（以 DeepSeek 为例）</summary>
+        <ol>
+          <li>打开 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 注册并登录</li>
+          <li>左侧选「API keys」→「创建 API key」→ 复制那串 <code>sk-</code> 开头的字符</li>
+          <li>在「充值」里充一点余额（几块钱就够用很久）</li>
+          <li>回到这里粘贴，点「保存并启用」</li>
+        </ol>
+        <p>其他服务商同理，选对应平台注册后创建密钥即可。密钥仅保存在你浏览器的本地存储中，
+           不会上传到本站服务器（本站也根本没有服务器）。换电脑或清理浏览器数据后需要重新填写。</p>
+      </details>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script>window.__LAW__ = /*__LAW_DATA__*/null;</script>
 <script src="assets/render.js"></script>
 <script src="assets/qr.js"></script>
+<script src="assets/llm.js"></script>
 <script src="assets/app.js" defer></script>
 </body>
 </html>
