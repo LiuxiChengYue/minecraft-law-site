@@ -1,0 +1,32 @@
+[Unit]
+Description=《我的世界》世界基本法典 官方网站
+Documentation=file:///opt/law-site/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/law-site
+Environment=NODE_ENV=production
+Environment=PORT=8787
+Environment=HOST=0.0.0.0
+# 大模型增强（可选）：把密钥放到单独文件里，避免出现在 systemctl show 输出中
+# EnvironmentFile=-/etc/law-site.env
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/law-site
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

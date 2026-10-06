@@ -81,10 +81,11 @@ fs.writeFileSync(path.join(outDir, 'index.html'), shell);
 // 3) 服务端（纯静态构建时也保留，方便随时加回 AI）
 copyDir(path.join(ROOT, 'server'), path.join(outDir, 'server'));
 
-// 4) 部署所需的描述文件
-for (const f of ['Dockerfile', 'docker-compose.yml', 'render.yaml', 'railway.json',
-  'fly.toml', 'Procfile', 'law-site.service', '.dockerignore']) {
-  const src = path.join(ROOT, 'deploy', f);
+// 4) 部署所需的描述文件（仓库根目录：Blueprint / 容器平台都从这里读）
+const DEPLOY_FILES = ['Dockerfile', 'docker-compose.yml', 'render.yaml', 'railway.json',
+  'fly.toml', 'Procfile', 'law-site.service', '.dockerignore'];
+for (const f of DEPLOY_FILES) {
+  const src = path.join(ROOT, f);
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(outDir, f));
 }
 if (fs.existsSync(path.join(ROOT, 'README.md'))) {
@@ -94,8 +95,7 @@ if (fs.existsSync(path.join(ROOT, 'README.md'))) {
 // 纯静态构建：去掉服务端与容器文件，只留可直接托管的静态站
 if (staticOnly) {
   rmrf(path.join(outDir, 'server'));
-  for (const f of ['Dockerfile', 'docker-compose.yml', 'render.yaml', 'railway.json',
-    'fly.toml', 'Procfile', 'law-site.service', '.dockerignore']) {
+  for (const f of DEPLOY_FILES) {
     const p = path.join(outDir, f);
     if (fs.existsSync(p)) fs.rmSync(p);
   }
