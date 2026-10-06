@@ -1,0 +1,59 @@
+name: 校验
+
+# 每次推送都跑一遍：语法、结构、检索、二维码、构建产物
+# 部署平台（Render）会等这个工作流完成，避免把坏版本发到线上。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 语法检查
+        run: |
+          for f in server/*.js public/assets/*.js tests/*.js; do
+            node --check "$f" || exit 1
+          done
+
+      - name: 数据结构与渲染
+        run: node tests/render.test.js
+
+      - name: 二维码编码
+        run: node tests/qr.test.js
+
+      - name: 局域网地址过滤
+        run: node tests/access.test.js
+
+      - name: 启动服务并测试接口
+        run: |
+          node server/index.js --port 8787 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8787/api/health >/dev/null && break
+            sleep 1
+          done
+          node tests/server.test.js
+          STATUS=$?
+          kill $SERVER_PID
+          exit $STATUS
+
+      - name: 构建产物与部署模式
+        run: node tests/deploy.test.js
+
+      - name: 构建 dist 并确认体积
+        run: |
+          node server/build.js --out dist
+          test -f dist/index.html
+          test -f dist/server/index.js
+          du -sh dist
